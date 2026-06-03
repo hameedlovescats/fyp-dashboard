@@ -1,0 +1,18 @@
+{
+  "model_name": "Logistic Regression",
+  "feature_columns": [
+    "lag_1",
+    "lag_2",
+    "lag_3",
+    "lag_4",
+    "lag_5",
+    "lag_6",
+    "lag_7",
+    "lag_8",
+    "woy_sin",
+    "woy_cos"
+  ],
+  "decision_threshold": 0.67,
+  "prob_threshold": 0.67,
+  "log1p": true
+}

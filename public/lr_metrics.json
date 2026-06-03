@@ -1,0 +1,27 @@
+{
+  "model": "Logistic Regression (final)",
+  "log1p": true,
+  "prob_threshold": 0.67,
+  "precision": 0.26262626262626265,
+  "recall": 0.8666666666666667,
+  "f1": 0.40310077519379844,
+  "tp": 26,
+  "fp": 73,
+  "tn": 329,
+  "fn": 4,
+  "roc_auc": 0.9032752902155887,
+  "pr_auc": 0.29947111343248756,
+  "n_features": 10,
+  "features": [
+    "lag_1",
+    "lag_2",
+    "lag_3",
+    "lag_4",
+    "lag_5",
+    "lag_6",
+    "lag_7",
+    "lag_8",
+    "woy_sin",
+    "woy_cos"
+  ]
+}

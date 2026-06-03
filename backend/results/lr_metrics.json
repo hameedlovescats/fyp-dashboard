@@ -1,0 +1,25 @@
+{
+  "model": "Logistic Regression (portable)",
+  "log1p": true,
+  "prob_threshold": 0.67,
+  "n_features": 10,
+  "features": [
+    "lag_1",
+    "lag_2",
+    "lag_3",
+    "lag_4",
+    "lag_5",
+    "lag_6",
+    "lag_7",
+    "lag_8",
+    "woy_sin",
+    "woy_cos"
+  ],
+  "n_train": 1092,
+  "n_test": 432,
+  "roc_auc": 0.9087479270315092,
+  "pr_auc": 0.37186333274874034,
+  "precision": 0.29213483146067415,
+  "recall": 0.8666666666666667,
+  "f1": 0.4369747899159664
+}
