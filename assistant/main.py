@@ -2,14 +2,14 @@ import json
 import os
 import urllib.error
 import urllib.request
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 
-app = FastAPI(title="AgriAI Copilot", version="1.0.0")
+app = FastAPI(title="AgriAI Copilot", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -82,7 +82,11 @@ def _local_answer(message: str, context: Dict[str, Any]) -> str:
             return "I cannot see field context yet. Reload the dashboard and ask again."
         return (
             f"{top.get('client_id')} is the highest-risk field in the current dashboard context at about {_pct(top.get('prob_high_risk'))}%. "
-            + ("It is above threshold, so verify the signal with field scouting first." if int(top.get("alert") or 0) == 1 else "It remains below threshold, so increased observation is more appropriate than automatic treatment.")
+            + (
+                "It is above threshold, so verify the signal with field scouting first."
+                if int(top.get("alert") or 0) == 1
+                else "It remains below threshold, so increased observation is more appropriate than automatic treatment."
+            )
         )
 
     if "threshold" in lower or "0.67" in lower:
@@ -118,12 +122,25 @@ def _local_answer(message: str, context: Dict[str, Any]) -> str:
     return "I can help interpret pest risk, explain the model, plan scouting, and discuss general agriculture decision support. Ask me a specific field or crop question."
 
 
-def _openai_answer(payload: ChatRequest) -> Optional[str]:
-    api_key = os.getenv("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        return None
+def _provider() -> Tuple[Optional[str], Optional[str], Optional[str], str]:
+    gateway_token = (os.getenv("AI_GATEWAY_API_KEY") or os.getenv("VERCEL_OIDC_TOKEN") or "").strip()
+    if gateway_token:
+        model = (os.getenv("AI_GATEWAY_MODEL") or "openai/gpt-5.6-sol").strip()
+        return gateway_token, "https://ai-gateway.vercel.sh/v1/responses", model, "vercel-ai-gateway"
 
-    model = os.getenv("OPENAI_MODEL", "gpt-5.6").strip() or "gpt-5.6"
+    openai_key = os.getenv("OPENAI_API_KEY", "").strip()
+    if openai_key:
+        model = (os.getenv("OPENAI_MODEL") or "gpt-5.6").strip()
+        return openai_key, "https://api.openai.com/v1/responses", model, "openai"
+
+    return None, None, None, "local"
+
+
+def _llm_answer(payload: ChatRequest) -> Tuple[Optional[str], str]:
+    token, endpoint, model, mode = _provider()
+    if not token or not endpoint or not model:
+        return None, "local"
+
     context_json = json.dumps(payload.context, ensure_ascii=False, separators=(",", ":"))
     recent = "\n".join(f"{item.role}: {item.content}" for item in payload.history[-6:])
     user_input = (
@@ -131,7 +148,8 @@ def _openai_answer(payload: ChatRequest) -> Optional[str]:
         f"Recent conversation:\n{recent}\n\n"
         f"User: {payload.message}"
     )
-    body = {
+
+    body: Dict[str, Any] = {
         "model": model,
         "store": False,
         "instructions": (
@@ -144,18 +162,21 @@ def _openai_answer(payload: ChatRequest) -> Optional[str]:
         "input": user_input,
     }
 
+    if mode == "vercel-ai-gateway":
+        body["providerOptions"] = {"gateway": {"disallowPromptTraining": True}}
+
     request = urllib.request.Request(
-        "https://api.openai.com/v1/responses",
+        endpoint,
         data=json.dumps(body).encode("utf-8"),
-        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         method="POST",
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=25) as response:
+        with urllib.request.urlopen(request, timeout=28) as response:
             data = json.loads(response.read().decode("utf-8"))
     except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ValueError):
-        return None
+        return None, "local"
 
     text_parts: List[str] = []
     for item in data.get("output") or []:
@@ -164,18 +185,25 @@ def _openai_answer(payload: ChatRequest) -> Optional[str]:
         for content in item.get("content") or []:
             if content.get("type") == "output_text" and content.get("text"):
                 text_parts.append(str(content["text"]))
+
     answer = "\n".join(text_parts).strip()
-    return answer or None
+    return (answer or None), (mode if answer else "local")
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "llm_configured": bool(os.getenv("OPENAI_API_KEY", "").strip())}
+    token, endpoint, model, mode = _provider()
+    return {
+        "ok": True,
+        "ai_mode": mode,
+        "ai_configured": bool(token and endpoint and model),
+        "model": model,
+    }
 
 
 @app.post("/api/chat")
 def chat(payload: ChatRequest):
-    answer = _openai_answer(payload)
+    answer, mode = _llm_answer(payload)
     if answer:
-        return {"reply": answer, "mode": "openai"}
+        return {"reply": answer, "mode": mode}
     return {"reply": _local_answer(payload.message, payload.context), "mode": "local"}
