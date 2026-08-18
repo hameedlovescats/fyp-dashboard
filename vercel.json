@@ -9,6 +9,12 @@
       "routePrefix": "/_/backend",
       "framework": "python",
       "entrypoint": "main.py"
+    },
+    "assistant": {
+      "root": "assistant",
+      "routePrefix": "/_/assistant",
+      "framework": "python",
+      "entrypoint": "main.py"
     }
   }
 }

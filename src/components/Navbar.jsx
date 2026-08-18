@@ -1,44 +1,69 @@
-﻿import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 
-function NavItem({ to, children }) {
+const items = [
+  ["/", "Command"],
+  ["/check-risk", "Predict"],
+  ["/fields", "Fields"],
+  ["/sensors", "Sensors"],
+  ["/tasks", "Actions"],
+  ["/model", "Intelligence"],
+];
+
+function LeafMark() {
   return (
-    <NavLink
-      to={to}
-      end={to === "/"}
-      className={({ isActive }) =>
-        [
-          "rounded-lg px-3 py-2 text-sm font-medium",
-          isActive ? "bg-white text-slate-900 shadow-sm" : "text-slate-600 hover:text-slate-900 hover:bg-white/60",
-        ].join(" ")
-      }
-    >
-      {children}
-    </NavLink>
+    <svg viewBox="0 0 44 44" aria-hidden="true">
+      <path d="M35.8 7.5C24 7.6 13.1 11.7 9.3 20.8c-3 7.2.5 13 6.4 15.7 6.1 2.8 12.6-.3 15.8-6.8 3.7-7.4 2.4-15.8 4.3-22.2Z" fill="currentColor" opacity=".95" />
+      <path d="M10 35c6.4-8.2 12.3-13.5 20-18.2" fill="none" stroke="#07140f" strokeWidth="2.4" strokeLinecap="round" />
+    </svg>
   );
 }
 
 export default function Navbar() {
+  const [open, setOpen] = useState(false);
+  const location = useLocation();
+
+  useEffect(() => setOpen(false), [location.pathname]);
+
   return (
-    <header className="sticky top-0 z-10 border-b bg-slate-50/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="grid h-9 w-9 place-items-center rounded-xl bg-slate-900 text-white text-sm font-semibold">
-            PR
-          </div>
-          <div className="leading-tight">
-            <div className="font-semibold text-slate-900">Pest Risk Dashboard</div>
-            <div className="text-xs text-slate-500">FYP MVP (results viewer)</div>
-          </div>
+    <header className="agri-nav-wrap">
+      <div className="agri-nav">
+        <NavLink to="/" className="brand-lockup" aria-label="AgriAI home">
+          <span className="brand-mark"><LeafMark /></span>
+          <span>
+            <strong>AgriAI</strong>
+            <small>FIELD INTELLIGENCE</small>
+          </span>
+        </NavLink>
+
+        <nav className={`nav-links ${open ? "is-open" : ""}`} aria-label="Primary navigation">
+          {items.map(([to, label]) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === "/"}
+              className={({ isActive }) => `nav-pill ${isActive ? "active" : ""}`}
+            >
+              {label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="nav-status">
+          <span className="status-dot" />
+          <span>MODEL ONLINE</span>
         </div>
 
-        <nav className="flex items-center gap-1 rounded-xl bg-slate-100 p-1">
-          <NavItem to="/">Overview</NavItem>
-          <NavItem to="/check-risk">Check Risk</NavItem>
-          <NavItem to="/fields">Fields</NavItem>
-          <NavItem to="/sensors">Sensors</NavItem>
-          <NavItem to="/tasks">Tasks</NavItem>
-          <NavItem to="/model">Model</NavItem>
-        </nav>
+        <button
+          type="button"
+          className="nav-menu-button"
+          aria-label="Toggle navigation"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+        >
+          <span />
+          <span />
+        </button>
       </div>
     </header>
   );
