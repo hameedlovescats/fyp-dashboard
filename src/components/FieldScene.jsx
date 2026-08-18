@@ -13,7 +13,14 @@ export default function FieldScene({ risk = 0, field = "FIELD NETWORK" }) {
       <div className="field-scan-line" />
       <div className="field-particles" aria-hidden="true">
         {Array.from({ length: 18 }).map((_, i) => (
-          <i key={i} style={{ "--i": i }} />
+          <i
+            key={i}
+            style={{
+              "--i": i,
+              left: `${(i * 37) % 91}%`,
+              top: `${16 + ((i * 29) % 70)}%`,
+            }}
+          />
         ))}
       </div>
 
